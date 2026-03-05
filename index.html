@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto Kubeconfig — Gestiona todos tus clusters EKS en segundos</title>
+  <meta name="description" content="Automatiza la creación de tu kubeconfig con todos los clusters EKS de múltiples profiles AWS. 255+ profiles, 200+ clusters, menos de 2 minutos." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0e17;
+      --bg-card: #111827;
+      --bg-card-hover: #1a2332;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      --green: #4ade80;
+      --orange: #fb923c;
+      --purple: #a78bfa;
+      --pink: #f472b6;
+      --radius: 12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Layout */
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+    .section { padding: 100px 0; }
+
+    /* Nav */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10, 14, 23, 0.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    nav .container {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .nav-logo {
+      font-weight: 700; font-size: 1.15rem; color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .nav-cta {
+      background: var(--accent); color: var(--bg); padding: 8px 20px;
+      border-radius: 8px; font-weight: 600; font-size: 0.875rem;
+      transition: opacity 0.2s;
+    }
+    .nav-cta:hover { opacity: 0.85; text-decoration: none; }
+
+    /* Hero */
+    .hero {
+      padding-top: 160px; padding-bottom: 80px;
+      text-align: center; position: relative;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent-glow); border: 1px solid rgba(56,189,248,0.2);
+      padding: 6px 16px; border-radius: 999px; font-size: 0.8rem;
+      color: var(--accent); font-weight: 500; margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 800;
+      line-height: 1.1; margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1.2rem; color: var(--text-muted);
+      max-width: 620px; margin: 0 auto 40px;
+    }
+
+    .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--accent); color: var(--bg); padding: 14px 32px;
+      border-radius: 10px; font-weight: 600; font-size: 1rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 40px var(--accent-glow); text-decoration: none; }
+    .btn-secondary {
+      background: var(--bg-card); color: var(--text); padding: 14px 32px;
+      border-radius: 10px; font-weight: 600; font-size: 1rem;
+      border: 1px solid var(--border); transition: border-color 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--accent); text-decoration: none; }
+
+    /* Stats */
+    .stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+      margin-top: 80px;
+    }
+    .stat {
+      text-align: center; padding: 24px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .stat-number { font-size: 2.2rem; font-weight: 800; color: var(--accent); }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* Terminal */
+    .terminal-section { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .terminal {
+      background: #0d1117; border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      max-width: 720px; margin: 0 auto;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+    }
+    .terminal-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px; background: #161b22; border-bottom: 1px solid var(--border);
+    }
+    .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .terminal-dot.red { background: #ff5f57; }
+    .terminal-dot.yellow { background: #febc2e; }
+    .terminal-dot.green { background: #28c840; }
+    .terminal-title { font-size: 0.75rem; color: var(--text-muted); margin-left: 8px; }
+    .terminal-body { padding: 20px 24px; font-size: 0.85rem; line-height: 1.8; }
+    .terminal-body .prompt { color: var(--green); }
+    .terminal-body .cmd { color: var(--text); }
+    .terminal-body .output { color: var(--text-muted); }
+    .terminal-body .success { color: var(--green); }
+    .terminal-body .info { color: var(--accent); }
+
+    /* Features */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .feature-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; margin-bottom: 16px;
+    }
+    .feature-icon.blue { background: rgba(56,189,248,0.12); }
+    .feature-icon.green { background: rgba(74,222,128,0.12); }
+    .feature-icon.orange { background: rgba(251,146,60,0.12); }
+    .feature-icon.purple { background: rgba(167,139,250,0.12); }
+    .feature-icon.pink { background: rgba(244,114,182,0.12); }
+    .feature-icon.cyan { background: rgba(34,211,238,0.12); }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
+    .feature-card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* Section headers */
+    .section-header { text-align: center; margin-bottom: 56px; }
+    .section-header h2 {
+      font-size: 2.2rem; font-weight: 700; margin-bottom: 12px;
+    }
+    .section-header p { color: var(--text-muted); font-size: 1.05rem; max-width: 560px; margin: 0 auto; }
+
+    /* How it works */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+    .step { text-align: center; position: relative; }
+    .step-number {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--accent-glow); border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; font-weight: 700; color: var(--accent);
+      margin: 0 auto 20px;
+    }
+    .step h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+    .step p { font-size: 0.9rem; color: var(--text-muted); }
+
+    /* Install */
+    .install-block {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+      max-width: 640px; margin: 0 auto;
+    }
+    .install-block pre {
+      background: #0d1117; padding: 20px; border-radius: 8px;
+      overflow-x: auto; font-size: 0.85rem; line-height: 1.7;
+      color: var(--text-muted);
+    }
+    .install-block pre .comment { color: #6e7681; }
+    .install-block pre .cmd { color: var(--green); }
+
+    /* Compatibility */
+    .compat-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+    }
+    .compat-item {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; text-align: center;
+      transition: border-color 0.3s;
+    }
+    .compat-item:hover { border-color: var(--accent); }
+    .compat-item .icon { font-size: 2rem; margin-bottom: 12px; }
+    .compat-item h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+    .compat-item p { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* CTA */
+    .cta-section {
+      text-align: center;
+      background: linear-gradient(180deg, var(--bg) 0%, rgba(56,189,248,0.05) 100%);
+    }
+    .cta-section h2 { font-size: 2.4rem; font-weight: 800; margin-bottom: 16px; }
+    .cta-section p { color: var(--text-muted); font-size: 1.1rem; margin-bottom: 36px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border); padding: 40px 0;
+      text-align: center; color: var(--text-muted); font-size: 0.85rem;
+    }
+    footer .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 16px; }
+    footer .footer-links a { color: var(--text-muted); }
+    footer .footer-links a:hover { color: var(--text); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .features-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .compat-grid { grid-template-columns: repeat(2, 1fr); }
+      .nav-links { display: none; }
+      .section { padding: 64px 0; }
+    }
+    @media (max-width: 480px) {
+      .stats { grid-template-columns: 1fr; }
+      .compat-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="container">
+      <a href="#" class="nav-logo">☸️ <span>auto</span>-kubeconfig</a>
+      <ul class="nav-links">
+        <li><a href="#features">Características</a></li>
+        <li><a href="#how-it-works">Cómo funciona</a></li>
+        <li><a href="#install">Instalación</a></li>
+        <li><a href="#compatibility">Compatibilidad</a></li>
+      </ul>
+      <a href="https://github.com/yourusername/auto-kubeconfig" class="nav-cta" target="_blank" rel="noopener">⭐ GitHub</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="badge">🚀 Open Source &bull; MIT License</div>
+      <h1>Todos tus clusters EKS.<br/>Un solo comando.</h1>
+      <p>Genera automáticamente tu kubeconfig con todos los clusters EKS de múltiples profiles AWS. Procesamiento en paralelo, backup automático y listo para usar.</p>
+      <div class="hero-actions">
+        <a href="#install" class="btn-primary">Comenzar ahora</a>
+        <a href="#how-it-works" class="btn-secondary">Ver cómo funciona</a>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-number">255+</div>
+          <div class="stat-label">Profiles procesados</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">200+</div>
+          <div class="stat-label">Clusters detectados</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">&lt;2 min</div>
+          <div class="stat-label">Tiempo de ejecución</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">10</div>
+          <div class="stat-label">Workers paralelos</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Terminal Demo -->
+  <section class="section terminal-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Míralo en acción</h2>
+        <p>Un comando. Todos tus clusters. Sin configuración manual.</p>
+      </div>
+      <div class="terminal">
+        <div class="terminal-header">
+          <div class="terminal-dot red"></div>
+          <div class="terminal-dot yellow"></div>
+          <div class="terminal-dot green"></div>
+          <span class="terminal-title mono">bash — auto-kubeconfig</span>
+        </div>
+        <div class="terminal-body mono">
+          <div><span class="prompt">$</span> <span class="cmd">python auto_kubeconfig.py</span></div>
+          <br/>
+          <div class="output">🚀 Iniciando generación automática de kubeconfig...</div>
+          <div class="output">📋 Encontrados <span class="info">255</span> profiles en ~/.aws/config</div>
+          <div class="output">🔍 Buscando clusters EKS en paralelo (10 workers)...</div>
+          <div class="output">&nbsp;&nbsp; ✓ [50/255] procesados — 38 clusters encontrados</div>
+          <div class="output">&nbsp;&nbsp; ✓ [150/255] procesados — 124 clusters encontrados</div>
+          <div class="output">&nbsp;&nbsp; ✓ [255/255] procesados — 204 clusters encontrados</div>
+          <br/>
+          <div class="success">✅ Encontrados 204 cluster(s) en 162 profile(s)</div>
+          <div class="success">💾 Backup creado: ~/.kube/config.backup</div>
+          <div class="success">✅ Kubeconfig guardado en: ~/.kube/config</div>
+          <br/>
+          <div><span class="prompt">$</span> <span class="cmd">kubectl config get-contexts | head -5</span></div>
+          <div class="output">CURRENT  NAME                    CLUSTER          AUTHINFO</div>
+          <div class="output">*        eks-prod-us-east-1      eks-prod         eks-prod-user</div>
+          <div class="output">&nbsp;        eks-staging-eu-west-1   eks-staging      eks-staging-user</div>
+          <div class="output">&nbsp;        eks-dev-us-west-2       eks-dev          eks-dev-user</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <h2>Todo lo que necesitas</h2>
+        <p>Diseñado para equipos que gestionan múltiples cuentas AWS y clusters EKS a escala.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon blue">🔍</div>
+          <h3>Auto-detección de profiles</h3>
+          <p>Lee automáticamente todos los profiles de tu <code>~/.aws/config</code>. Sin configuración adicional.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon green">⚡</div>
+          <h3>Procesamiento paralelo</h3>
+          <p>Usa ThreadPoolExecutor con workers configurables para procesar cientos de profiles en minutos.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon orange">💾</div>
+          <h3>Backup automático</h3>
+          <p>Crea un respaldo de tu kubeconfig existente antes de sobrescribirlo. Siempre seguro.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon purple">🔒</div>
+          <h3>Autenticación dinámica</h3>
+          <p>Usa <code>aws eks get-token</code> para tokens renovables. Sin credenciales estáticas en el kubeconfig.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon pink">🎯</div>
+          <h3>Filtrado por profiles</h3>
+          <p>Procesa todos los profiles o selecciona solo los que necesitas con <code>--profiles</code>.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon cyan">🧪</div>
+          <h3>Modo dry-run</h3>
+          <p>Previsualiza el kubeconfig que se generaría sin modificar nada en tu sistema.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="section" id="how-it-works" style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-header">
+        <h2>Cómo funciona</h2>
+        <p>Tres pasos. Sin complicaciones.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3>Escanea tus profiles</h3>
+          <p>Lee <code>~/.aws/config</code> y detecta todos los profiles AWS configurados, incluyendo SSO.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3>Descubre clusters</h3>
+          <p>Consulta la API de EKS en paralelo para cada profile y región, listando todos los clusters disponibles.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3>Genera el kubeconfig</h3>
+          <p>Crea un archivo kubeconfig válido con clusters, usuarios, contextos y autenticación dinámica.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install -->
+  <section class="section" id="install">
+    <div class="container">
+      <div class="section-header">
+        <h2>Instalación rápida</h2>
+        <p>Listo en menos de un minuto.</p>
+      </div>
+      <div class="install-block">
+        <pre><span class="comment"># Clonar el repositorio</span>
+<span class="cmd">git clone https://github.com/yourusername/auto-kubeconfig.git</span>
+<span class="cmd">cd auto-kubeconfig</span>
+
+<span class="comment"># Instalar dependencias</span>
+<span class="cmd">pip install -r requirements.txt</span>
+
+<span class="comment"># Ejecutar</span>
+<span class="cmd">python auto_kubeconfig.py</span>
+
+<span class="comment"># O instalar como paquete global</span>
+<span class="cmd">pip install -e .</span>
+<span class="cmd">auto-kubeconfig --help</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Compatibility -->
+  <section class="section" id="compatibility" style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-header">
+        <h2>Compatible con tu stack</h2>
+        <p>Funciona con las herramientas que ya usas.</p>
+      </div>
+      <div class="compat-grid">
+        <div class="compat-item">
+          <div class="icon">🐍</div>
+          <h4>Python 3.6+</h4>
+          <p>Sin dependencias pesadas</p>
+        </div>
+        <div class="compat-item">
+          <div class="icon">☁️</div>
+          <h4>AWS CLI v2</h4>
+          <p>SSO y credenciales clásicas</p>
+        </div>
+        <div class="compat-item">
+          <div class="icon">☸️</div>
+          <h4>kubectl</h4>
+          <p>Kubeconfig estándar</p>
+        </div>
+        <div class="compat-item">
+          <div class="icon">🔐</div>
+          <h4>AWS SSO</h4>
+          <p>Soporte nativo completo</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section cta-section">
+    <div class="container">
+      <h2>Deja de configurar kubeconfigs a mano</h2>
+      <p>Únete a los equipos que ya gestionan cientos de clusters EKS con un solo comando.</p>
+      <div class="hero-actions">
+        <a href="https://github.com/yourusername/auto-kubeconfig" class="btn-primary" target="_blank" rel="noopener">Ver en GitHub</a>
+        <a href="https://github.com/yourusername/auto-kubeconfig/blob/main/EXAMPLES.md" class="btn-secondary" target="_blank" rel="noopener">Ver ejemplos</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-links">
+        <a href="https://github.com/yourusername/auto-kubeconfig" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/yourusername/auto-kubeconfig/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribuir</a>
+        <a href="https://github.com/yourusername/auto-kubeconfig/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
+        <a href="https://github.com/yourusername/auto-kubeconfig/blob/main/LICENSE" target="_blank" rel="noopener">Licencia MIT</a>
+      </div>
+      <p>Hecho por <a href="https://yonier.com" target="_blank" rel="noopener">Yonier Asprilla</a> — simplificando la gestión de múltiples clusters EKS</p>
+    </div>
+  </footer>
+
+</body>
+</html>
